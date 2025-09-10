@@ -4,7 +4,12 @@ export const runtime = "nodejs";
 
 // --- deps
 import { supabaseAdmin } from "@/lib/supabase";
-import { Pinecone, type RecordMetadata, type PineconeRecord } from "@pinecone-database/pinecone";
+import {
+  Pinecone,
+  type Index,
+  type RecordMetadata,
+  type PineconeRecord,
+} from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 
 // --- env
@@ -15,10 +20,30 @@ const PINECONE_INDEX = process.env.PINECONE_INDEX!;
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "text-embedding-3-small"; // 1536-dim, faster
 const PINECONE_DIM = Number(process.env.PINECONE_DIM || 1536); // MUST match your index
 
-// --- singletons
-const pc = new Pinecone({ apiKey: PINECONE_API_KEY });
-const index = pc.index(PINECONE_INDEX);
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// --- lazy singletons ---
+let _pineconeIndex: Index | null = null;
+let _openai: OpenAI | null = null;
+
+function getPineconeIndex(): Index {
+  if (_pineconeIndex) return _pineconeIndex;
+  const apiKey = process.env.PINECONE_API_KEY;
+  const indexName = process.env.PINECONE_INDEX;
+  if (!apiKey || !indexName) throw new Error("Missing PINECONE_API_KEY or PINECONE_INDEX.");
+  const pc = new Pinecone({ apiKey });
+  _pineconeIndex = pc.index(indexName);
+  return _pineconeIndex;
+}
+
+function getOpenAI(): OpenAI {
+  if (_openai) return _openai;
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) throw new Error("Missing OPENAI_API_KEY.");
+  _openai = new OpenAI({ apiKey: key });
+  return _openai;
+}
+
+const index = getPineconeIndex();
+const openai = getOpenAI();
 
 // --- route
 export async function POST(req: Request) {

@@ -1,27 +1,44 @@
-// app/api/agent/tools/answer_from_doc/route.ts
 import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   Pinecone,
+  type Index,
   type RecordMetadata,
   type ScoredPineconeRecord,
 } from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 
 /* ---------- env ---------- */
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
-const PINECONE_API_KEY = process.env.PINECONE_API_KEY!;
-const PINECONE_INDEX = process.env.PINECONE_INDEX!;
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "text-embedding-3-small"; // fast & 1536-d
 const GPT_MODEL = process.env.GPT_MODEL || "gpt-4o-mini";
 const ELEVEN_TOOL_SECRET = process.env.ELEVEN_TOOL_SECRET; // optional enforcement
 
-/* ---------- singletons ---------- */
-const pc = new Pinecone({ apiKey: PINECONE_API_KEY });
-const index = pc.index(PINECONE_INDEX);
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+/* ---------- lazy singletons ---------- */
+let _pineconeIndex: Index | null = null;
+let _openai: OpenAI | null = null;
+
+function getPineconeIndex(): Index {
+  if (_pineconeIndex) return _pineconeIndex;
+  const apiKey = process.env.PINECONE_API_KEY;
+  const indexName = process.env.PINECONE_INDEX;
+  if (!apiKey || !indexName) throw new Error("Missing PINECONE_API_KEY or PINECONE_INDEX.");
+  const pc = new Pinecone({ apiKey });
+  _pineconeIndex = pc.index(indexName);
+  return _pineconeIndex;
+}
+
+function getOpenAI(): OpenAI {
+  if (_openai) return _openai;
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) throw new Error("Missing OPENAI_API_KEY.");
+  _openai = new OpenAI({ apiKey: key });
+  return _openai;
+}
+
+const index = getPineconeIndex();
+const openai = getOpenAI();
 
 /* ---------- constants ---------- */
 const MAX_CONTEXT_CHARS = 12_000;
