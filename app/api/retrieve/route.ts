@@ -3,45 +3,54 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { Pinecone } from "@pinecone-database/pinecone";
+import {
+  Pinecone,
+  type RecordMetadata,
+  type ScoredPineconeRecord,
+} from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 
-// --- env / singletons
+/* --- env / singletons --- */
 const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
 const index = pc.index(process.env.PINECONE_INDEX!);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "text-embedding-3-small";
 
+/* request typing */
+type Loose = Record<string, unknown>;
+
+interface RetrievePayload {
+  q?: unknown;
+  question?: unknown;
+  prompt?: unknown;
+  topK?: unknown;
+  topk?: unknown;
+  document_id?: string;
+  doc_version_id?: string;
+  slug?: string;
+}
+
 export async function POST(req: Request) {
   const trace = getTraceId();
-  const t0 = Date.now();
-
   try {
-    const body = await req.json();
-    const q: string = (body?.q ?? "").toString().trim();
+    const raw = await req.text().catch(() => "");
+    const parsed: Loose = raw ? (JSON.parse(raw) as Loose) : {};
+
+    const p: RetrievePayload = (parsed as RetrievePayload) ?? {};
+    const q = String(p.q ?? p.question ?? p.prompt ?? "").trim();
+    const topK = clampInt(p.topK ?? p.topk ?? 5, 1, 10);
+
     if (!q) return NextResponse.json({ error: "q required" }, { status: 400 });
 
-    const topK = clampInt(body?.topK ?? 5, 1, 10);
+let { document_id, doc_version_id } = p;
+const { slug } = p;
 
-    // Accept either explicit IDs or a slug we resolve
-    let document_id: string | undefined = body?.document_id;
-    let doc_version_id: string | undefined = body?.doc_version_id;
-
-    if (!document_id || !doc_version_id) {
-      const slug: string = (body?.slug ?? "").toString().trim();
-      if (!slug) {
-        return NextResponse.json(
-          { error: "Provide slug or (document_id + doc_version_id)" },
-          { status: 400 }
-        );
-      }
-      const tSlug = Date.now();
+    if ((!document_id || !doc_version_id) && slug) {
       const ss = await supabaseAdmin
         .from("share_surfaces")
         .select("document_id, live_version_id")
         .eq("page_slug", slug)
         .single();
-      logLatency("retrieve", trace, { step: "lookup_slug", ms: Date.now() - tSlug, slug });
 
       if (ss.error || !ss.data) {
         return NextResponse.json({ error: "Unknown slug" }, { status: 404 });
@@ -50,55 +59,55 @@ export async function POST(req: Request) {
       doc_version_id = ss.data.live_version_id;
     }
 
-    // 1) Embed query
-    const t1 = Date.now();
+    if (!document_id || !doc_version_id) {
+      return NextResponse.json(
+        { error: "Provide slug or (document_id + doc_version_id)" },
+        { status: 400 }
+      );
+    }
+
+    // embed query
     const emb = await openai.embeddings.create({ model: EMBEDDING_MODEL, input: q });
     const vec = emb.data?.[0]?.embedding;
-    logLatency("retrieve", trace, { step: "embed", ms: Date.now() - t1, q_len: q.length });
     if (!vec) return NextResponse.json({ error: "Embedding failed" }, { status: 500 });
 
-    // 2) Pinecone similarity search
-    const t2 = Date.now();
+    // pinecone query
     const namespace = `doc:${document_id}:v:${doc_version_id}`;
     const res = await index.namespace(namespace).query({
       vector: vec,
       topK,
       includeMetadata: true,
     });
-    const hits = res.matches ?? [];
-    logLatency("retrieve", trace, { step: "pinecone_query", ms: Date.now() - t2, hits: hits.length });
 
-    // Done
-    logLatency("retrieve", trace, { step: "total", ms: Date.now() - t0 });
+    const matches: ScoredPineconeRecord<RecordMetadata>[] = res.matches ?? [];
+
     return NextResponse.json({
       ok: true,
-      q,
-      results: hits.map((h) => ({
-        id: h.id,
-        score: h.score,
-        idx: Number.isFinite(Number(h.metadata?.idx)) ? Number(h.metadata?.idx) : null,
-        path: (h.metadata?.path as string) ?? "root",
-        snippet: (h.metadata?.text_snippet as string) ?? null,
-        section: null, // keep lean; skip DB section fetch for speed
+      hits: matches.map((m) => ({
+        score: m.score,
+        idx: (m.metadata?.idx as number | undefined) ?? null,
+        path: (m.metadata?.path as string | undefined) ?? "root",
+        snippet: (m.metadata?.text_snippet as string | undefined) ?? "",
       })),
-      document_id,
-      doc_version_id,
     });
-  } catch (e: any) {
-    console.error(`[latency][retrieve] trace=${trace} ERROR:`, e?.message || e);
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[retrieve] trace=", trace, msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
-/* --------------- helpers --------------- */
-function clampInt(n: any, min: number, max: number) {
-  const v = Number(n) || 0;
-  return Math.max(min, Math.min(v, max));
+/* helpers */
+function clampInt(v: unknown, min: number, max: number) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(n, max));
 }
 function getTraceId() {
-  // @ts-ignore
-  return globalThis.crypto?.randomUUID?.() || String(Date.now());
-}
-function logLatency(scope: string, trace: string, data: Record<string, any>) {
-  try { console.log(`[latency][${scope}] trace=${trace} ${JSON.stringify(data)}`); } catch {}
+  try {
+    const g = globalThis as typeof globalThis & { crypto?: { randomUUID?: () => string } };
+    return g.crypto?.randomUUID?.() ?? String(Date.now());
+  } catch {
+    return String(Date.now());
+  }
 }

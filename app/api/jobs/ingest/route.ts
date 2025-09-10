@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 
 // --- deps
 import { supabaseAdmin } from "@/lib/supabase";
-import { Pinecone } from "@pinecone-database/pinecone";
+import { Pinecone, type RecordMetadata, type PineconeRecord } from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 
 // --- env
@@ -26,17 +26,17 @@ export async function POST(req: Request) {
   const T0 = Date.now();
 
   try {
-    const body = await req.json().catch((e) => {
+    const body = await req.json().catch((e: unknown) => {
       logErr("ingest", trace, "Invalid JSON", e);
       throw new Error("invalid json");
     });
 
     // Input
-    const title: string | undefined = body.title;
-    const requestedSlug: string | undefined = body.slug;
-    const objectPath: string = body.objectPath; // required: storage key (can include bucket)
-    let document_id: string | undefined = body.document_id;
-    let doc_version_id: string | undefined = body.doc_version_id;
+    const title: string | undefined = (body as Record<string, unknown>)?.["title"] as string | undefined;
+    const requestedSlug: string | undefined = (body as Record<string, unknown>)?.["slug"] as string | undefined;
+    const objectPath = (body as Record<string, unknown>)?.["objectPath"] as string | undefined; // required
+    let document_id: string | undefined = (body as Record<string, unknown>)?.["document_id"] as string | undefined;
+    let doc_version_id: string | undefined = (body as Record<string, unknown>)?.["doc_version_id"] as string | undefined;
 
     if (!objectPath) {
       return NextResponse.json({ error: "objectPath required" }, { status: 400 });
@@ -61,9 +61,7 @@ export async function POST(req: Request) {
 
     const page_slug =
       requestedSlug ||
-      slugify(title || objectPath.split("/").slice(-1)[0] || "document") +
-        "-" +
-        document_id.slice(0, 8);
+      slugify(title || objectPath.split("/").slice(-1)[0] || "document") + "-" + document_id.slice(0, 8);
 
     // upsert documents
     {
@@ -120,9 +118,7 @@ export async function POST(req: Request) {
     const pathInBucket = normalizeStoragePath(objectPath, SUPABASE_BUCKET);
     const dl = await supabaseAdmin.storage.from(SUPABASE_BUCKET).download(pathInBucket);
     if (dl.error || !dl.data) {
-      const msg = `Download failed from bucket=${SUPABASE_BUCKET} key=${pathInBucket}: ${
-        dl.error?.message || "unknown"
-      }`;
+      const msg = `Download failed from bucket=${SUPABASE_BUCKET} key=${pathInBucket}: ${dl.error?.message || "unknown"}`;
       await markFailed(document_id, doc_version_id, msg);
       logErr("ingest", trace, msg);
       return NextResponse.json({ error: msg }, { status: 500 });
@@ -136,43 +132,43 @@ export async function POST(req: Request) {
       size_bytes: arrayBuf.byteLength,
     });
 
-// 3) Parse → clean → chunk
-const T3 = Date.now();
-const ext = guessExt(objectPath);
-const rawText = await extractText(ext, arrayBuf).catch((e) => {
-  logErr("ingest", trace, `extractText(${ext}) failed`, e);
-  return "";
-});
-if (!rawText) {
-  const msg = "No text extracted (unsupported or empty)";
-  await markFailed(document_id, doc_version_id, msg);
-  logErr("ingest", trace, msg);
-  return NextResponse.json({ error: msg }, { status: 400 });
-}
+    // 3) Parse → clean → chunk
+    const T3 = Date.now();
+    const ext = guessExt(objectPath);
+    const rawText = await extractText(ext, arrayBuf).catch((e: unknown) => {
+      logErr("ingest", trace, `extractText(${ext}) failed`, e);
+      return "";
+    });
+    if (!rawText) {
+      const msg = "No text extracted (unsupported or empty)";
+      await markFailed(document_id, doc_version_id, msg);
+      logErr("ingest", trace, msg);
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
 
-// NEW: scrub invalid surrogate pairs / nulls before anything else
-const sanitized = scrubUnicode(rawText);
+    // NEW: scrub invalid surrogate pairs / nulls before anything else
+    const sanitized = scrubUnicode(rawText);
 
-// then normalize + chunk
-const cleaned = normalizeText(sanitized);
-const chunks = smartChunk(cleaned);
-if (!chunks.length) {
-  const msg = "No chunks produced";
-  await markFailed(document_id, doc_version_id, msg);
-  logErr("ingest", trace, msg);
-  return NextResponse.json({ error: msg }, { status: 400 });
-}
-logLatency("ingest", trace, {
-  step: "parse_chunk",
-  ms: Date.now() - T3,
-  chars: cleaned.length,
-  chunks: chunks.length,
-  avg_chunk_chars: Math.round(cleaned.length / chunks.length),
-});
+    // then normalize + chunk
+    const cleaned = normalizeText(sanitized);
+    const chunks = smartChunk(cleaned);
+    if (!chunks.length) {
+      const msg = "No chunks produced";
+      await markFailed(document_id, doc_version_id, msg);
+      logErr("ingest", trace, msg);
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+    logLatency("ingest", trace, {
+      step: "parse_chunk",
+      ms: Date.now() - T3,
+      chars: cleaned.length,
+      chunks: chunks.length,
+      avg_chunk_chars: Math.round(cleaned.length / chunks.length),
+    });
 
     // 4) Embeddings (batched with retry)
     const T4 = Date.now();
-    const vectors = await embedChunks(chunks, EMBEDDING_MODEL).catch((e) => {
+    const vectors = await embedChunks(chunks, EMBEDDING_MODEL).catch((e: unknown) => {
       logErr("ingest", trace, "embedChunks failed", e);
       throw new Error("embedding failed");
     });
@@ -191,52 +187,61 @@ logLatency("ingest", trace, {
       model: EMBEDDING_MODEL,
     });
 
-// 5) Upsert to Pinecone
-const T5 = Date.now();
-const namespace = `doc:${document_id}:v:${doc_version_id}`;
+    // 5) Upsert to Pinecone
+    const T5 = Date.now();
+    const namespace = `doc:${document_id}:v:${doc_version_id}`;
 
-try {
-  // Clean namespace if re-ingest of same version
-  try {
-    await index.namespace(namespace).deleteAll();
-  } catch (e: any) {
-    console.warn("[pinecone] deleteAll warning:", e?.message || e);
-  }
-
-  const records = vectors.map((v, i) => ({
-    id: `${document_id}-${i}`,
-    values: v.values, // number[]
-    metadata: {
-      document_id,
-      doc_version_id,
-      idx: i,
-      path: v.path,
-text_snippet: safeSnippet(v.snippet),
-    } as Record<string, any>,
-  }));
-
-  for (const batch of chunkArray(records, 150)) {
     try {
-      const resp = await index.namespace(namespace).upsert(batch);
-      console.log("[pinecone] upsert batch ok:", resp);
-    } catch (e: any) {
-      console.error("[pinecone] upsert batch FAILED:", {
-        message: e?.message,
-        name: e?.name,
-        status: e?.status,
-        code: e?.code,
-        stack: e?.stack,
-        raw: e,
-      });
-      throw e;
-    }
-  }
+      // Clean namespace if re-ingest of same version
+      try {
+        await index.namespace(namespace).deleteAll();
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn("[pinecone] deleteAll warning:", msg);
+      }
 
-  logLatency("ingest", trace, { step: "pinecone_upsert", ms: Date.now() - T5, upserted: records.length, namespace });
-} catch (e: any) {
-  await markFailed(document_id!, doc_version_id!, `pinecone upsert failed: ${e?.message || e}`);
-  return NextResponse.json({ error: `pinecone upsert failed: ${e?.message || e}` }, { status: 500 });
-}
+      type MetaValue = string | number | boolean | null;
+// replace the previous `records = vectors.map(...)` block with:
+const records: PineconeRecord<RecordMetadata>[] = vectors.map((v, i) => ({
+  id: `${document_id}-${i}`,
+  values: v.values,
+  metadata: {
+    document_id,
+    doc_version_id,
+    idx: i,
+    path: v.path,
+    text_snippet: safeSnippet(v.snippet),
+  } satisfies RecordMetadata,
+}));
+
+      for (const batch of chunkArray(records, 150)) {
+        try {
+          const resp = await index.namespace(namespace).upsert(batch);
+          console.log("[pinecone] upsert batch ok:", resp);
+        } catch (e: unknown) {
+          const err = e as { message?: string; name?: string; status?: number; code?: string; stack?: string };
+          console.error("[pinecone] upsert batch FAILED:", {
+            message: err?.message,
+            name: err?.name,
+            status: err?.status,
+            code: err?.code,
+            stack: err?.stack,
+          });
+          throw e;
+        }
+      }
+
+      logLatency("ingest", trace, {
+        step: "pinecone_upsert",
+        ms: Date.now() - T5,
+        upserted: records.length,
+        namespace,
+      });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await markFailed(document_id!, doc_version_id!, `pinecone upsert failed: ${msg}`);
+      return NextResponse.json({ error: `pinecone upsert failed: ${msg}` }, { status: 500 });
+    }
 
     // 6) Optional: persist sections for editor/analytics (non-blocking warning only)
     {
@@ -280,8 +285,8 @@ text_snippet: safeSnippet(v.snippet),
       page_url: `/d/${page_slug}`,
       chunks: chunks.length,
     });
-  } catch (e: any) {
-    const msg = e?.message || String(e);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
     console.error(`[ingest] trace=${trace} ERROR`, msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
@@ -289,28 +294,39 @@ text_snippet: safeSnippet(v.snippet),
 
 /* ---------------- helpers ---------------- */
 
-function getTraceId() {
-  // @ts-ignore
-  return globalThis.crypto?.randomUUID?.() || String(Date.now());
+function getTraceId(): string {
+  // Prefer Web Crypto if available; fall back to timestamp
+  const g = globalThis as { crypto?: { randomUUID?: () => string } };
+  if (g.crypto && typeof g.crypto.randomUUID === "function") {
+    return g.crypto.randomUUID();
+  }
+  return String(Date.now());
 }
 
-function logLatency(scope: string, trace: string, data: Record<string, any>) {
+function logLatency(scope: string, trace: string, data: Record<string, unknown>) {
   try {
     console.log(`[latency][${scope}] trace=${trace} ${JSON.stringify(data)}`);
-  } catch {}
+  } catch {
+    // ignore JSON stringify errors
+  }
 }
 
-function logWarn(scope: string, trace: string, msg: string, detail?: any) {
-  console.warn(`[warn][${scope}] trace=${trace} ${msg}${detail ? ` :: ${detail}` : ""}`);
+function logWarn(scope: string, trace: string, msg: string, detail?: unknown) {
+  const det = detail instanceof Error ? detail.message : detail !== undefined ? String(detail) : "";
+  console.warn(`[warn][${scope}] trace=${trace} ${msg}${det ? ` :: ${det}` : ""}`);
 }
 
-function logErr(scope: string, trace: string, msg: string, err?: any) {
-  console.error(`[error][${scope}] trace=${trace} ${msg}${err ? ` :: ${err?.message || err}` : ""}`);
+function logErr(scope: string, trace: string, msg: string, err?: unknown) {
+  const det = err instanceof Error ? err.message : err !== undefined ? String(err) : "";
+  console.error(`[error][${scope}] trace=${trace} ${msg}${det ? ` :: ${det}` : ""}`);
 }
 
-function cryptoRandomId() {
-  // @ts-ignore
-  return globalThis.crypto?.randomUUID?.();
+function cryptoRandomId(): string {
+  const g = globalThis as { crypto?: { randomUUID?: () => string } };
+  if (g.crypto && typeof g.crypto.randomUUID === "function") {
+    return g.crypto.randomUUID();
+  }
+  return String(Date.now());
 }
 
 function guessExt(path: string) {
@@ -333,9 +349,7 @@ function slugify(s: string) {
 }
 
 function normalizeText(t: string) {
-  return sanitizeUnicode(
-    t.normalize("NFC")
-  );
+  return sanitizeUnicode(t.normalize("NFC"));
 }
 
 // Nuke any surrogate halves and non-printable controls; keep \n \t \r
@@ -344,10 +358,7 @@ function scrubUnicode(s: string): string {
   // Remove ANY surrogate halves (D800–DFFF), i.e. unpaired or weird pairs
   s = s.replace(/[\uD800-\uDFFF]/g, "");
   // Strip C0/C1 controls except tab/newline/carriage-return
-  s = s.replace(
-    /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g,
-    ""
-  );
+  s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "");
   // Strip non-characters like U+FFFE/U+FFFF at any plane
   s = s.replace(/[\uFDD0-\uFDEF]/g, "");
   s = s.replace(/[\uFFFE\uFFFF]/g, "");
@@ -365,8 +376,6 @@ function sliceByCodepoints(s: string, max: number): string {
 function safeSnippet(s: string, max = 500): string {
   return sliceByCodepoints(scrubUnicode(s), max);
 }
-
-
 
 type ChunkUnit = { text: string; path: string; heading?: string };
 function smartChunk(text: string, maxChars = 1800, overlap = 200): ChunkUnit[] {
@@ -409,14 +418,16 @@ function chunkArray<T>(arr: T[], size: number) {
   return out;
 }
 
-async function embedChunks(chunks: ChunkUnit[], model: string) {
+type EmbeddedVector = { values: number[]; path: string; snippet: string };
+
+async function embedChunks(chunks: ChunkUnit[], model: string): Promise<EmbeddedVector[]> {
   const inputs = chunks.map((c) => c.text);
   const batches = chunkArray(inputs, 96);
-  const result: { values: number[]; path: string; snippet: string }[] = [];
+  const result: EmbeddedVector[] = [];
 
   for (const b of batches) {
     const emb = await withRetry(() => openai.embeddings.create({ model, input: b }));
-    const vecs = emb.data.map((d, i) => ({
+    const vecs: EmbeddedVector[] = emb.data.map((d, i) => ({
       values: (d.embedding as unknown as number[]) || [],
       path: "root",
       snippet: b[i]!.slice(0, 500),
@@ -426,50 +437,88 @@ async function embedChunks(chunks: ChunkUnit[], model: string) {
   return result;
 }
 
-async function withRetry<T>(fn: () => Promise<T>, tries = 4) {
-  let lastErr: any;
+async function withRetry<T>(fn: () => Promise<T>, tries = 4): Promise<T> {
+  let lastErr: unknown;
   for (let i = 0; i < tries; i++) {
     try {
       return await fn();
-    } catch (e: any) {
+    } catch (e: unknown) {
       lastErr = e;
       const backoff = 400 * Math.pow(2, i) + Math.random() * 200;
       await new Promise((r) => setTimeout(r, backoff));
     }
   }
+  // rethrow with original type info lost; caller treats as unknown
   throw lastErr;
 }
+
+// Minimal local types so we don't deep-import pdfjs types
+type PDFGetDocument = (params: { data: Uint8Array }) => { promise: Promise<PDFDocumentProxy> };
+
+interface PDFDocumentProxy {
+  numPages: number;
+  getPage(pageNumber: number): Promise<PDFPageProxy>;
+}
+
+interface PDFPageProxy {
+  getTextContent(): Promise<TextContent>;
+}
+
+interface TextItem {
+  str?: string;
+}
+
+interface TextContent {
+  items: Array<TextItem | unknown>;
+}
+
+function isTextItem(x: unknown): x is TextItem {
+  return typeof x === "object" && x !== null && "str" in (x as Record<string, unknown>);
+}
+
+type MammothModule = {
+  extractRawText: (input: { buffer: Buffer }) => Promise<{ value?: string }>;
+};
 
 async function extractText(ext: string, arrayBuf: ArrayBuffer): Promise<string> {
   if (ext === "pdf") {
     // --- Attempt A: pdf-parse (fast)
     try {
-      const pdfParse = (await import("pdf-parse")).default as any;
-      const data = await pdfParse(Buffer.from(arrayBuf));
-      const textA = (data?.text || "").trim();
+      const mod = (await import("pdf-parse")).default as unknown as (
+        input: Buffer
+      ) => Promise<{ text?: string; numpages?: number }>;
+      const data = await mod(Buffer.from(arrayBuf));
+      const textA = (data?.text ?? "").trim();
       console.log("[extractText] pdf-parse pages:", data?.numpages, "chars:", textA.length);
       if (textA.length > 20) return textA; // accept if we got a reasonable amount
-    } catch (e: any) {
-      console.warn("[extractText] pdf-parse failed, will try pdfjs-dist fallback:", e?.message || e);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[extractText] pdf-parse failed, will try pdfjs-dist fallback:", msg);
     }
 
-    // --- Attempt B: pdfjs-dist fallback (more compatible)
+    // --- Attempt B: pdfjs-dist (more compatible)
     try {
-      // pdfjs-dist expects a Uint8Array
-      const { getDocument } = await import("pdfjs-dist");
-      // @ts-ignore - some installs expose .getDocument under .default
-      const getDoc = (getDocument as any) || (await import("pdfjs-dist/legacy/build/pdf.js")).getDocument;
+      // Dynamic import so this only loads on the server runtime
+      const pdfjs = (await import("pdfjs-dist")) as unknown as {
+        getDocument?: PDFGetDocument;
+        default?: { getDocument?: PDFGetDocument };
+      };
 
-      const loadingTask = getDoc({ data: new Uint8Array(arrayBuf) });
-      const pdf = await loadingTask.promise;
+      const getDocument: PDFGetDocument | undefined = pdfjs.getDocument ?? pdfjs.default?.getDocument;
+
+      if (!getDocument) {
+        throw new Error("pdfjs-dist getDocument not found");
+      }
+
+      const loadingTask = getDocument({ data: new Uint8Array(arrayBuf) });
+      const pdf: PDFDocumentProxy = await loadingTask.promise;
 
       let out = "";
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
-        // getTextContent gives structured text items
         const content = await page.getTextContent();
         const pageText = content.items
-          .map((it: any) => (typeof it.str === "string" ? it.str : ""))
+          .map((it) => (isTextItem(it) && typeof it.str === "string" ? it.str : ""))
           .join(" ");
         out += (out ? "\n\n" : "") + pageText;
       }
@@ -477,21 +526,23 @@ async function extractText(ext: string, arrayBuf: ArrayBuffer): Promise<string> 
       const textB = out.replace(/\s+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
       console.log("[extractText] pdfjs-dist pages:", pdf.numPages, "chars:", textB.length);
       return textB;
-    } catch (e: any) {
-      console.warn("[extractText] pdfjs-dist fallback failed:", e?.message || e);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[extractText] pdfjs-dist fallback failed:", msg);
       // fall through → try plain text
     }
   }
 
   if (ext === "docx") {
     try {
-      const mammothMod: any = await import("mammoth");
+      const mammothMod = (await import("mammoth")) as unknown as MammothModule;
       const { value } = await mammothMod.extractRawText({ buffer: Buffer.from(arrayBuf) });
-      const txt = (value || "").trim();
+      const txt = (value ?? "").trim();
       console.log("[extractText] mammoth docx chars:", txt.length);
       return txt;
-    } catch (e: any) {
-      console.warn("[extractText] mammoth failed:", e?.message || e);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[extractText] mammoth failed:", msg);
     }
   }
 
@@ -514,7 +565,7 @@ async function extractText(ext: string, arrayBuf: ArrayBuffer): Promise<string> 
 // Remove unpaired surrogates, control chars (except \n\t\r), and non-characters (…FFFE/FFFF)
 function sanitizeUnicode(input: string): string {
   let out = "";
-  for (const ch of input) {             // iterates by code points
+  for (const ch of input) {
     const cp = ch.codePointAt(0)!;
     // skip unpaired surrogate halves (D800–DFFF are surrogates; valid pairs won't appear as single code points here)
     if (cp >= 0xD800 && cp <= 0xDFFF) continue;

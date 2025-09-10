@@ -16,10 +16,26 @@ function randomSuffix(n = 8) {
   return Math.random().toString(16).slice(2, 2 + n);
 }
 
+type CreateDialogueBody = {
+  title: string;
+  pageSlugBase: string;
+  objectPath: string;
+  mode?: "development" | "production";
+  privacy?: "private" | "public";
+};
+
 export async function POST(req: Request) {
   try {
-    const { title, pageSlugBase, objectPath, mode = "development", privacy = "private" } =
-      await req.json();
+    const raw = await req.text();
+    const parsed = (raw ? JSON.parse(raw) : {}) as Partial<CreateDialogueBody>;
+
+    const {
+      title,
+      pageSlugBase,
+      objectPath,
+      mode = "development",
+      privacy = "private",
+    } = parsed;
 
     if (!title || !pageSlugBase || !objectPath) {
       return NextResponse.json(
@@ -44,7 +60,7 @@ export async function POST(req: Request) {
     }
     const document_id = docIns.data.id as string;
 
-    // 2) doc_versions (let the table default the status)
+    // 2) doc_versions
     const verIns = await supabaseAdmin
       .from("doc_versions")
       .insert([{ document_id, source_uri: objectPath, version: 1 }])
@@ -59,7 +75,7 @@ export async function POST(req: Request) {
     }
     const doc_version_id = verIns.data.id as string;
 
-    // 3) share_surfaces (only select existing columns; your table has no `id`)
+    // 3) share_surfaces
     const page_slug = docSlug;
     const page_url = `/d/${page_slug}`;
 
@@ -70,7 +86,7 @@ export async function POST(req: Request) {
           document_id,
           live_version_id: doc_version_id,
           page_slug,
-          page_url,        // keep this only if your table has it (your earlier sample did)
+          page_url,
           mode,
           privacy,
         },
@@ -96,7 +112,8 @@ export async function POST(req: Request) {
       mode,
       privacy,
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
