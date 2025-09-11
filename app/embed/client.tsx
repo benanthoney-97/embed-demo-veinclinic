@@ -42,9 +42,7 @@ export default function Client({
         await navigator.mediaDevices.getUserMedia({ audio: true });
       }
 
-      const res = await fetch(
-        `/api/eleven/get-signed-url?agent_id=${encodeURIComponent(agentId)}`
-      );
+      const res = await fetch(`/api/eleven/get-signed-url?agent_id=${encodeURIComponent(agentId)}`);
       const data: { signedUrl?: string; error?: string } = await res.json();
       if (!res.ok || !data.signedUrl) {
         throw new Error(data.error || "Failed to get signed URL");
@@ -75,14 +73,14 @@ export default function Client({
 
   const isConnected = String(status) === "connected";
 
-  // Inline compact UI
+  // Inline compact UI (button first, then copy)
   if (inlineMode) {
     return (
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr auto",
-          gap: 8,
+          gridTemplateColumns: "auto 1fr",
+          gap: 12,
           alignItems: "center",
           padding: 12,
           background: "#fff",
@@ -90,21 +88,7 @@ export default function Client({
           borderRadius: 12,
         }}
       >
-        <div style={{ font: "500 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
-          {phase === "idle" || phase === "ready" ? (
-            <span>Ready to start a dialogue about this article.</span>
-          ) : phase === "connecting" ? (
-            <span>Connecting…</span>
-          ) : (
-            <span>Listening</span>
-          )}
-          {err && (
-            <div style={{ color: "#b91c1c", marginTop: 6, fontWeight: 500 }}>
-              {err}
-            </div>
-          )}
-        </div>
-
+        {/* Left: action controls */}
         {phase === "idle" || phase === "ready" ? (
           <button onClick={start} style={pill()}>
             Start Dialogue
@@ -119,6 +103,24 @@ export default function Client({
             </button>
           </div>
         )}
+
+        {/* Right: explanatory/feedback text */}
+        <div style={{ font: "500 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
+          {phase === "connecting" ? (
+            <span>Connecting…</span>
+          ) : phase === "connected" ? (
+            <span>Listening</span>
+          ) : (
+            <span>
+              Dialogue lets you talk to this article at a level and language that suits you.
+            </span>
+          )}
+          {err && (
+            <div style={{ color: "#b91c1c", marginTop: 6, fontWeight: 500 }}>
+              {err}
+            </div>
+          )}
+        </div>
       </div>
     );
   }

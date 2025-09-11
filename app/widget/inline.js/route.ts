@@ -9,23 +9,42 @@ export async function GET() {
     const origin = s.dataset.origin || location.origin;
     const agentId = s.dataset.agentId || "";
     const label = s.dataset.label || "Talk to this article";
-    const logo = s.dataset.logo || "https://mnuvflcglofttsmsqilc.supabase.co/storage/v1/object/public/dialogue-assets/Frame%2010.png";                 // 👈 optional logo URL
-    const width = s.dataset.width || "420px";          // 👈 optional iframe width
-    const height = s.dataset.height || "120px";        // 👈 optional iframe height
+    const logo = s.dataset.logo || "";
+    const width = s.dataset.width || "420px";
+    const height = s.dataset.height || "120px";
+    const fadeMs = 180;
 
     if (!agentId) {
       console.error("[dialogue-inline] Missing data-agent-id");
       return;
     }
 
-    // container
+    // Wrapper with fixed dimensions to prevent layout shift
     const wrap = document.createElement("div");
     wrap.style.font = "500 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
     wrap.style.display = "inline-block";
+    wrap.style.width = width;
+    wrap.style.maxWidth = "100%";
+    wrap.style.height = height;
+    wrap.style.position = "relative";
 
-    // button (initial state)
+    // CTA container (fills the box so click target is large)
+    const ctaBox = document.createElement("div");
+    ctaBox.style.position = "absolute";
+    ctaBox.style.inset = "0";
+    ctaBox.style.display = "flex";
+    ctaBox.style.alignItems = "center";
+    ctaBox.style.justifyContent = "center";
+    ctaBox.style.background = "#fff";
+    ctaBox.style.border = "1px solid rgba(0,0,0,.08)";
+    ctaBox.style.borderRadius = "12px";
+    ctaBox.style.boxShadow = "0 12px 30px rgba(0,0,0,.06)";
+    ctaBox.style.transition = \`opacity \${fadeMs}ms ease\`;
+
+    // Button
     const btn = document.createElement("button");
     btn.type = "button";
+    btn.setAttribute("aria-label", label);
     btn.style.display = "inline-flex";
     btn.style.alignItems = "center";
     btn.style.gap = "8px";
@@ -35,13 +54,10 @@ export async function GET() {
     btn.style.background = "#fff";
     btn.style.cursor = "pointer";
     btn.style.boxShadow = "0 1px 2px rgba(0,0,0,.08)";
-    btn.style.transition = "background 120ms ease";
-    btn.setAttribute("aria-label", label);
-
+    btn.style.transition = "background 120ms ease, opacity 120ms ease";
     btn.onmouseenter = () => (btn.style.background = "#f8f8f8");
     btn.onmouseleave = () => (btn.style.background = "#fff");
 
-    // optional leading logo on CTA
     if (logo) {
       const img = document.createElement("img");
       img.src = logo;
@@ -60,33 +76,38 @@ export async function GET() {
     span.style.fontWeight = "600";
     btn.appendChild(span);
 
-    // frame placeholder (swapped in on click)
+    ctaBox.appendChild(btn);
+    wrap.appendChild(ctaBox);
+
+    // Mount the iframe (inline embed UI handles "Ready to start a dialogue…" + Start button)
     const mountIframe = () => {
       const frame = document.createElement("iframe");
-
-      const params = new URLSearchParams({
-        agent_id: agentId,
-        mode: "inline",
-      });
+      const params = new URLSearchParams({ agent_id: agentId, mode: "inline" });
       if (logo) params.set("logo", logo);
 
-      const url = origin.replace(/\\/$/, "") + "/embed?" + params.toString();
-      frame.src = url;
+      frame.src = origin.replace(/\\/$/, "") + "/embed?" + params.toString();
       frame.allow = "microphone";
-      frame.style.width = width;
-      frame.style.maxWidth = "100%";
-      frame.style.height = height;     // compact inline UI height
+      frame.style.position = "absolute";
+      frame.style.inset = "0";
+      frame.style.width = "100%";
+      frame.style.height = "100%";
       frame.style.border = "0";
       frame.style.borderRadius = "12px";
       frame.style.boxShadow = "0 12px 30px rgba(0,0,0,.06)";
-
-      wrap.innerHTML = "";
       wrap.appendChild(frame);
     };
 
-    btn.onclick = () => mountIframe();
+    btn.onclick = () => {
+      // fade the CTA out, keep the wrapper size
+      ctaBox.style.opacity = "0";
+      btn.disabled = true;
+      setTimeout(() => {
+        // swap to iframe (ready state shows inside iframe)
+        ctaBox.remove();
+        mountIframe();
+      }, fadeMs);
+    };
 
-    wrap.appendChild(btn);
     s.replaceWith(wrap);
   })();`;
 
