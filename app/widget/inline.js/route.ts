@@ -34,6 +34,7 @@ export async function GET() {
     ctaBox.style.inset = "0";
     ctaBox.style.display = "flex";
     ctaBox.style.alignItems = "left";
+    ctaBox.style.padding = "12px";
     ctaBox.style.justifyContent = "left";
     ctaBox.style.background = "transparent";
     ctaBox.style.border = "0px";
