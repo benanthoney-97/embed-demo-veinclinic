@@ -179,6 +179,11 @@ function pill(variant: "solid" | "soft" = "solid"): CSSProperties {
     cursor: "pointer",
     boxShadow: "0px",
     transition: "background 120ms ease, opacity 120ms ease",
+    fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    fontWeight: 600,
+    fontSize: 14,
+    lineHeight: 1.2 as any,
+    appearance: "none" as any,
   };
 
   if (variant === "soft") {
