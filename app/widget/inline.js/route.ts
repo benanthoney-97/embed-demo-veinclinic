@@ -33,12 +33,12 @@ export async function GET() {
     ctaBox.style.position = "absolute";
     ctaBox.style.inset = "0";
     ctaBox.style.display = "flex";
-    ctaBox.style.alignItems = "center";
+    ctaBox.style.alignItems = "align";
     ctaBox.style.justifyContent = "center";
     ctaBox.style.background = "transparent";
-    ctaBox.style.border = "1px solid rgba(0,0,0,.08)";
+    ctaBox.style.border = "0px";
     ctaBox.style.borderRadius = "12px";
-    ctaBox.style.boxShadow = "0 12px 30px rgba(0,0,0,.06)";
+    ctaBox.style.boxShadow = "0px";
     ctaBox.style.transition = \`opacity \${fadeMs}ms ease\`;
 
     // Button
