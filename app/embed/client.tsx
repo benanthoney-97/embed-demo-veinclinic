@@ -15,13 +15,33 @@ export default function Client({
   const [phase, setPhase] = useState<Phase>("idle");
   const [err, setErr] = useState<string>("");
 
+  // speaking state we toggle from SDK callbacks
+  const [agentSpeaking, setAgentSpeaking] = useState(false);
+  const [userSpeaking, setUserSpeaking] = useState(false);
+
   const { startSession, endSession, status } = useConversation({
     onConnect: () => setPhase("connected"),
-    onDisconnect: () => setPhase("ready"),
+    onDisconnect: () => {
+      setPhase("ready");
+      setAgentSpeaking(false);
+      setUserSpeaking(false);
+    },
     onError: (e: unknown) => {
       const msg = e instanceof Error ? e.message : JSON.stringify(e);
       setErr(msg);
     },
+
+    // The SDK may expose these; if your typings don’t yet, ts-expect-error keeps lint happy.
+    onAgentStartSpeaking: () => {
+      setAgentSpeaking(true);
+      setUserSpeaking(false);
+    },
+    onAgentStopSpeaking: () => setAgentSpeaking(false),
+    onUserStartSpeaking: () => {
+      setUserSpeaking(true);
+      setAgentSpeaking(false);
+    },
+    onUserStopSpeaking: () => setUserSpeaking(false),
   });
 
   // Normalize SDK status to our phase
@@ -67,6 +87,8 @@ export default function Client({
     try {
       await endSession();
       setPhase("ready");
+      setAgentSpeaking(false);
+      setUserSpeaking(false);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : JSON.stringify(e);
       setErr(msg);
@@ -77,19 +99,28 @@ export default function Client({
 
   // Inline compact UI (button first, then copy)
   if (inlineMode) {
+    const rightLabel =
+      phase === "connecting"
+        ? "Connecting…"
+        : phase === "connected"
+        ? agentSpeaking
+          ? "Talk to interrupt"
+          : "Listening"
+        : "Dialogue lets you talk to this article at a level and language that suits you.";
+
     return (
-<div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "auto 1fr",
-    gap: 12,
-    alignItems: "center",   // 👈 middle vertically
-    padding: 12,
-    background: "#fff",
-    border: "0px",
-    borderRadius: 12,
-  }}
->
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto 1fr",
+          gap: 12,
+          alignItems: "center", // vertical middle in each cell
+          padding: 12,
+          background: "#fff",
+          border: "0px",
+          borderRadius: 12,
+        }}
+      >
         {/* Left: action controls */}
         {phase === "idle" || phase === "ready" ? (
           <button
@@ -102,9 +133,6 @@ export default function Client({
           </button>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 13, color: "rgba(0,0,0,.6)", fontWeight: 600 }}>
-              {isConnected ? "Talk to interrupt" : "…"}
-            </span>
             <button
               onClick={stop}
               aria-label="Stop"
@@ -112,22 +140,30 @@ export default function Client({
               onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f8f8")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
             >
+              {/* Black square icon */}
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-block",
+                  width: 10,
+                  height: 10,
+                  background: "#000",
+                  borderRadius: 2,
+                  marginRight: 6,
+                }}
+              />
               Stop
             </button>
           </div>
         )}
 
-        {/* Right: explanatory/feedback text */}
-        <div style={{ font: "600 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
-          {phase === "connecting" ? (
-            <span>Connecting…</span>
-          ) : phase === "connected" ? (
-            <span>Listening</span>
-          ) : (
-            <span>
-              Dialogue lets you talk to this article at a level and language that suits you.
-            </span>
-          )}
+        {/* Right: single status line */}
+        <div
+          style={{
+            font: "600 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+          }}
+        >
+          <span>{rightLabel}</span>
           {err && (
             <div style={{ color: "#b91c1c", marginTop: 6, fontWeight: 500 }}>
               {err}
@@ -158,10 +194,24 @@ export default function Client({
           onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f8f8")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
         >
+          <span
+            aria-hidden="true"
+            style={{
+              display: "inline-block",
+              width: 10,
+              height: 10,
+              background: "#000",
+              borderRadius: 2,
+              marginRight: 6,
+            }}
+          />
           Stop
         </button>
       </div>
       <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+        {/* In full embed we can show both states together */}
+        {agentSpeaking ? "Talk to interrupt" : userSpeaking ? "Listening" : "Ready"}
+        {" · "}
         Status: {String(status)} | Agent: {agentId || "—"}
       </div>
       {err && <div style={{ color: "#b91c1c", marginTop: 8 }}>{err}</div>}
@@ -199,7 +249,6 @@ function pill(variant: "solid" | "soft" = "solid"): CSSProperties {
     ...base,
     border: "1px solid rgba(79,70,229,.3)",
     background: "#4f46e5",
-    fontWeight: 600,
     color: "#fff",
   };
 }
