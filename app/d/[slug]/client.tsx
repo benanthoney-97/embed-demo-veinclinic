@@ -25,20 +25,21 @@ export default function Client({ slug }: { slug: string }) {
 
       if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
         await navigator.mediaDevices.getUserMedia({ audio: true });
-      } else {
-        append("⚠️ Microphone API not available in this environment.");
       }
 
-      const res = await fetch("/api/eleven/get-signed-url");
+      // ✨ pass slug (and optionally IDs) to your server
+      const params = new URLSearchParams({ slug });
+      // If you want to send ids instead (or as well):
+      // params.set("document_id", "<your-doc-id>");
+      // params.set("doc_version_id", "<your-version-id>");
+
+const res = await fetch(`/api/eleven/get-signed-url?slug=${encodeURIComponent(slug)}`);
       const data: { signedUrl?: string; error?: string } = await res.json();
-      if (data.error || !data.signedUrl) {
-        throw new Error(data.error || "No signedUrl returned");
-      }
+      if (data.error || !data.signedUrl) throw new Error(data.error || "No signedUrl returned");
 
       const conversationId = await startSession({
         signedUrl: data.signedUrl,
         connectionType: "websocket",
-        // no `metadata` here – not supported by the type
       });
 
       append(`ℹ️ conversationId: ${conversationId}`);
@@ -58,9 +59,7 @@ export default function Client({ slug }: { slug: string }) {
       <button onClick={start} disabled={connecting || isConnected}>
         {isConnected ? "Connected" : connecting ? "Starting…" : "Start"}
       </button>
-      <button onClick={() => endSession()} disabled={!isConnected}>
-        Stop
-      </button>
+      <button onClick={() => endSession()} disabled={!isConnected}>Stop</button>
       <p>Status: {String(status)}</p>
       <pre style={{ whiteSpace: "pre-wrap" }}>{log.join("\n")}</pre>
     </div>

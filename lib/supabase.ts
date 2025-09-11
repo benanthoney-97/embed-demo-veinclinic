@@ -7,7 +7,7 @@ function getAdmin(): SupabaseClient {
   if (_admin) return _admin;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
     // Throw only when the route actually runs, not at import time

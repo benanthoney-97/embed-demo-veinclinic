@@ -1,13 +1,10 @@
 import Client from "./client";
-
-// If you statically generate elsewhere, you can remove this.
 export const dynamic = "force-dynamic";
 
 export default async function Page(
-  props: { params: Promise<{ slug: string }> } // 👈 note: Promise here
+  props: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await props.params;         // 👈 await it
-
+  const { slug } = await props.params;
   return (
     <main>
       <h1>Dialogue: {slug}</h1>
