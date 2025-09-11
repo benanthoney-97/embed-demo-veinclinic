@@ -200,7 +200,7 @@ function pill(variant: "solid" | "soft" = "solid"): CSSProperties {
   const base: CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "4px",
     padding: "10px 14px",
     borderRadius: 9999,
     cursor: "pointer",
