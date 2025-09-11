@@ -1,71 +1,74 @@
-// app/api/eleven/get-signed-url/route.ts
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  try {
-    const key = process.env.ELEVENLABS_API_KEY!;
-    const agentId = process.env.ELEVENLABS_AGENT_ID!;
-
-    if (!key || !agentId) {
-      return NextResponse.json(
-        { error: "Missing ELEVENLABS_API_KEY or ELEVENLABS_AGENT_ID" },
-        { status: 500 }
-      );
-    }
-
-    // Pull dynamic vars from the page/client
-    const url = new URL(req.url);
-    const slug = url.searchParams.get("slug") || undefined;
-    const document_id = url.searchParams.get("document_id") || undefined;
-    const doc_version_id = url.searchParams.get("doc_version_id") || undefined;
-
-    // Build the ConvAI get-signed-url request
-    const api = new URL(
-      "https://api.elevenlabs.io/v1/convai/conversation/get-signed-url"
+  const key = process.env.ELEVENLABS_API_KEY!;
+  const agentId = process.env.ELEVENLABS_AGENT_ID!;
+  if (!key || !agentId) {
+    return NextResponse.json(
+      { error: "Missing ELEVENLABS_API_KEY or ELEVENLABS_AGENT_ID" },
+      { status: 500 }
     );
-    api.searchParams.set("agent_id", agentId);
-
-    // Attach variables as metadata so your ElevenLabs Tool can reference them
-    // Tool config can then use: {{variables.slug}}, {{variables.document_id}}, {{variables.doc_version_id}}
-    const variables: Record<string, string> = {};
-    if (slug) variables.slug = slug;
-    if (document_id) variables.document_id = document_id;
-    if (doc_version_id) variables.doc_version_id = doc_version_id;
-
-    if (Object.keys(variables).length > 0) {
-      // ElevenLabs ConvAI accepts a 'metadata' param; we pass variables under that
-      api.searchParams.set(
-        "metadata",
-        JSON.stringify({ variables })
-      );
-    }
-
-    const res = await fetch(api.toString(), {
-      headers: { "xi-api-key": key },
-      // GET is correct for this endpoint
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      return NextResponse.json(
-        { error: `Failed to get signed URL: ${res.status} ${text}` },
-        { status: 502 }
-      );
-    }
-
-    const body = (await res.json()) as { signed_url?: string };
-    if (!body?.signed_url) {
-      return NextResponse.json(
-        { error: "No signed_url in ElevenLabs response" },
-        { status: 502 }
-      );
-    }
-
-    return NextResponse.json({ signedUrl: body.signed_url });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
   }
+
+  // pull dynamic vars from the page URL, e.g. /api/eleven/get-signed-url?slug=...
+  const { searchParams } = new URL(req.url);
+  const slug = searchParams.get("slug") || undefined;
+  const document_id = searchParams.get("document_id") || undefined;
+  const doc_version_id = searchParams.get("doc_version_id") || undefined;
+
+  // Build the payload as POST JSON. (GET query params can be ignored by Eleven.)
+  const payload = {
+    agent_id: agentId,
+
+    // ✅ primary place Eleven looks for these
+    dynamic_variables: {
+      ...(slug ? { slug } : {}),
+      ...(document_id ? { document_id } : {}),
+      ...(doc_version_id ? { doc_version_id } : {}),
+    },
+
+    // extra copies for compatibility; harmless if ignored
+    metadata: {
+      ...(slug ? { slug } : {}),
+      ...(document_id ? { document_id } : {}),
+      ...(doc_version_id ? { doc_version_id } : {}),
+    },
+    conversation_config: {
+      dynamic_variables: {
+        ...(slug ? { slug } : {}),
+        ...(document_id ? { document_id } : {}),
+        ...(doc_version_id ? { doc_version_id } : {}),
+      },
+      metadata: {
+        ...(slug ? { slug } : {}),
+        ...(document_id ? { document_id } : {}),
+        ...(doc_version_id ? { doc_version_id } : {}),
+      },
+    },
+  };
+
+  const res = await fetch(
+    "https://api.elevenlabs.io/v1/convai/conversation/get-signed-url",
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": key,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    return NextResponse.json(
+      { error: `Failed to get signed URL: ${res.status} ${text}` },
+      { status: 502 }
+    );
+  }
+
+  const body = await res.json();
+  return NextResponse.json({ signedUrl: body.signed_url });
 }
