@@ -1,67 +1,164 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
 
-type Status = "idle" | "connecting" | "connected" | "disconnected" | string;
+type Phase = "idle" | "ready" | "connecting" | "connected";
 
-export default function Client({ agentId }: { agentId: string }) {
-  const [log, setLog] = useState<string[]>([]);
-  const [connecting, setConnecting] = useState(false);
-  const append = (s: string) => setLog((L) => [...L, s]);
+export default function Client({
+  agentId,
+  inlineMode = false,
+}: {
+  agentId: string;
+  inlineMode?: boolean;
+}) {
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [err, setErr] = useState<string>("");
 
   const { startSession, endSession, status } = useConversation({
-    onConnect: () => append("✅ connected"),
-    onDisconnect: () => append("🔌 disconnected"),
+    onConnect: () => setPhase("connected"),
+    onDisconnect: () => setPhase("ready"),
     onError: (e: unknown) => {
       const msg = e instanceof Error ? e.message : JSON.stringify(e);
-      append(`❌ ${msg}`);
+      setErr(msg);
     },
   });
 
+  // Normalize SDK status to our phase
+  useEffect(() => {
+    const s = String(status);
+    if (s === "connected") setPhase("connected");
+    else if (s === "connecting") setPhase("connecting");
+    else if (s === "idle" || s === "disconnected") setPhase("ready");
+  }, [status]);
+
   async function start() {
     try {
+      setErr("");
       if (!agentId) throw new Error("No agent_id provided");
-      setConnecting(true);
+      setPhase("connecting");
 
-      // Ask for mic
       if (navigator?.mediaDevices?.getUserMedia) {
         await navigator.mediaDevices.getUserMedia({ audio: true });
       }
 
-      // Get signed URL for this agent
-      const res = await fetch(`/api/eleven/get-signed-url?agent_id=${encodeURIComponent(agentId)}`);
+      const res = await fetch(
+        `/api/eleven/get-signed-url?agent_id=${encodeURIComponent(agentId)}`
+      );
       const data: { signedUrl?: string; error?: string } = await res.json();
-      if (data.error || !data.signedUrl) throw new Error(data.error || "No signedUrl");
+      if (!res.ok || !data.signedUrl) {
+        throw new Error(data.error || "Failed to get signed URL");
+      }
 
       await startSession({
         signedUrl: data.signedUrl,
         connectionType: "websocket",
       });
+
+      setPhase("connected");
     } catch (e: unknown) {
+      setPhase("ready");
       const msg = e instanceof Error ? e.message : JSON.stringify(e);
-      append(`❌ ${msg}`);
-    } finally {
-      setConnecting(false);
+      setErr(msg);
     }
   }
 
-  const isConnected = (status as Status) === "connected";
+  async function stop() {
+    try {
+      await endSession();
+      setPhase("ready");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
+      setErr(msg);
+    }
+  }
 
+  const isConnected = String(status) === "connected";
+
+  // Inline compact UI
+  if (inlineMode) {
+    return (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto",
+          gap: 8,
+          alignItems: "center",
+          padding: 12,
+          background: "#fff",
+          border: "1px solid rgba(0,0,0,.08)",
+          borderRadius: 12,
+        }}
+      >
+        <div style={{ font: "500 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
+          {phase === "idle" || phase === "ready" ? (
+            <span>Ready to start a dialogue about this article.</span>
+          ) : phase === "connecting" ? (
+            <span>Connecting…</span>
+          ) : (
+            <span>Listening</span>
+          )}
+          {err && (
+            <div style={{ color: "#b91c1c", marginTop: 6, fontWeight: 500 }}>
+              {err}
+            </div>
+          )}
+        </div>
+
+        {phase === "idle" || phase === "ready" ? (
+          <button onClick={start} style={pill()}>
+            Start Dialogue
+          </button>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 13, color: "rgba(0,0,0,.6)" }}>
+              {isConnected ? "Talk to interrupt" : "…"}
+            </span>
+            <button onClick={stop} aria-label="Stop" style={pill("soft")}>
+              Stop
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback / full embed
   return (
     <div style={{ padding: 12 }}>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={start} disabled={connecting || isConnected}>
-          {isConnected ? "Connected" : connecting ? "Starting…" : "Start"}
+        <button onClick={start} disabled={phase === "connecting" || isConnected}>
+          {isConnected ? "Connected" : phase === "connecting" ? "Starting…" : "Start Dialogue"}
         </button>
-        <button onClick={() => endSession()} disabled={!isConnected}>
+        <button onClick={stop} disabled={!isConnected}>
           Stop
         </button>
       </div>
       <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
         Status: {String(status)} | Agent: {agentId || "—"}
       </div>
-      <pre style={{ whiteSpace: "pre-wrap", marginTop: 12 }}>{log.join("\n")}</pre>
+      {err && <div style={{ color: "#b91c1c", marginTop: 8 }}>{err}</div>}
     </div>
   );
+}
+
+function pill(variant: "solid" | "soft" = "solid"): React.CSSProperties {
+  if (variant === "soft") {
+    return {
+      padding: "10px 14px",
+      borderRadius: 9999,
+      border: "1px solid rgba(0,0,0,.12)",
+      background: "#fff",
+      cursor: "pointer",
+    };
+  }
+  return {
+    padding: "10px 14px",
+    borderRadius: 9999,
+    border: "1px solid rgba(79,70,229,.3)",
+    background: "#4f46e5",
+    color: "#fff",
+    cursor: "pointer",
+    boxShadow: "0 1px 2px rgba(0,0,0,.08)",
+  };
 }
