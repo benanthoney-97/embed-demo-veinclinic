@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useConversation } from "@elevenlabs/react";
 
 type Status = "idle" | "connecting" | "connected" | "disconnected" | string;
 
-export default function Client({
-  agentId,
-  autostart = true,
-}: {
-  agentId: string;
-  autostart?: boolean;
-}) {
+export default function Client({ agentId }: { agentId: string }) {
   const [log, setLog] = useState<string[]>([]);
   const [connecting, setConnecting] = useState(false);
   const append = (s: string) => setLog((L) => [...L, s]);
@@ -30,12 +24,12 @@ export default function Client({
       if (!agentId) throw new Error("No agent_id provided");
       setConnecting(true);
 
-      // Ask for mic (browser)
+      // Ask for mic
       if (navigator?.mediaDevices?.getUserMedia) {
         await navigator.mediaDevices.getUserMedia({ audio: true });
       }
 
-      // Get signed URL for THIS agent
+      // Get signed URL for this agent
       const res = await fetch(`/api/eleven/get-signed-url?agent_id=${encodeURIComponent(agentId)}`);
       const data: { signedUrl?: string; error?: string } = await res.json();
       if (data.error || !data.signedUrl) throw new Error(data.error || "No signedUrl");
@@ -51,11 +45,6 @@ export default function Client({
       setConnecting(false);
     }
   }
-
-  useEffect(() => {
-    if (autostart) start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentId, autostart]);
 
   const isConnected = (status as Status) === "connected";
 
