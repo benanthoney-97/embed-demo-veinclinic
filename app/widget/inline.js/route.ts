@@ -11,7 +11,7 @@ export async function GET() {
     const label = s.dataset.label || "Talk to this article";
     const logo = s.dataset.logo || "";
     const width = s.dataset.width || "420px";
-    const height = s.dataset.height || "120px";
+    const height = s.dataset.height || "70px";
     const fadeMs = 180;
 
     if (!agentId) {
@@ -35,7 +35,7 @@ export async function GET() {
     ctaBox.style.display = "flex";
     ctaBox.style.alignItems = "center";
     ctaBox.style.justifyContent = "center";
-    ctaBox.style.background = "#fff";
+    ctaBox.style.background = "transparent";
     ctaBox.style.border = "1px solid rgba(0,0,0,.08)";
     ctaBox.style.borderRadius = "12px";
     ctaBox.style.boxShadow = "0 12px 30px rgba(0,0,0,.06)";
@@ -53,7 +53,7 @@ export async function GET() {
     btn.style.border = "1px solid rgba(0,0,0,.12)";
     btn.style.background = "#fff";
     btn.style.cursor = "pointer";
-    btn.style.boxShadow = "0 1px 2px rgba(0,0,0,.08)";
+    btn.style.boxShadow = "0px";
     btn.style.transition = "background 120ms ease, opacity 120ms ease";
     btn.onmouseenter = () => (btn.style.background = "#f8f8f8");
     btn.onmouseleave = () => (btn.style.background = "#fff");

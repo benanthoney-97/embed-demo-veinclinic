@@ -161,6 +161,6 @@ function pill(variant: "solid" | "soft" = "solid"): React.CSSProperties {
     background: "#4f46e5",
     color: "#fff",
     cursor: "pointer",
-    boxShadow: "0 1px 2px rgba(0,0,0,.08)",
+    boxShadow: "0px",
   };
 }
