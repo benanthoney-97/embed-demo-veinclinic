@@ -15,33 +15,13 @@ export default function Client({
   const [phase, setPhase] = useState<Phase>("idle");
   const [err, setErr] = useState<string>("");
 
-  // speaking state we toggle from SDK callbacks
-  const [agentSpeaking, setAgentSpeaking] = useState(false);
-  const [userSpeaking, setUserSpeaking] = useState(false);
-
-  const { startSession, endSession, status } = useConversation({
+  const { startSession, endSession, status, isSpeaking } = useConversation({
     onConnect: () => setPhase("connected"),
-    onDisconnect: () => {
-      setPhase("ready");
-      setAgentSpeaking(false);
-      setUserSpeaking(false);
-    },
+    onDisconnect: () => setPhase("ready"),
     onError: (e: unknown) => {
       const msg = e instanceof Error ? e.message : JSON.stringify(e);
       setErr(msg);
     },
-
-    // The SDK may expose these; if your typings don’t yet, ts-expect-error keeps lint happy.
-    onAgentStartSpeaking: () => {
-      setAgentSpeaking(true);
-      setUserSpeaking(false);
-    },
-    onAgentStopSpeaking: () => setAgentSpeaking(false),
-    onUserStartSpeaking: () => {
-      setUserSpeaking(true);
-      setAgentSpeaking(false);
-    },
-    onUserStopSpeaking: () => setUserSpeaking(false),
   });
 
   // Normalize SDK status to our phase
@@ -87,8 +67,6 @@ export default function Client({
     try {
       await endSession();
       setPhase("ready");
-      setAgentSpeaking(false);
-      setUserSpeaking(false);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : JSON.stringify(e);
       setErr(msg);
@@ -103,9 +81,9 @@ export default function Client({
       phase === "connecting"
         ? "Connecting…"
         : phase === "connected"
-        ? agentSpeaking
-          ? "Talk to interrupt"
-          : "Listening"
+        ? isSpeaking
+          ? "Talk to interrupt" // agent speaking
+          : "Listening"         // user speaking / user’s turn
         : "Dialogue lets you talk to this article at a level and language that suits you.";
 
     return (
@@ -114,7 +92,7 @@ export default function Client({
           display: "grid",
           gridTemplateColumns: "auto 1fr",
           gap: 12,
-          alignItems: "center", // vertical middle in each cell
+          alignItems: "center",
           padding: 12,
           background: "#fff",
           border: "0px",
@@ -209,8 +187,7 @@ export default function Client({
         </button>
       </div>
       <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-        {/* In full embed we can show both states together */}
-        {agentSpeaking ? "Talk to interrupt" : userSpeaking ? "Listening" : "Ready"}
+        {isConnected ? (isSpeaking ? "Talk to interrupt" : "Listening") : "Ready"}
         {" · "}
         Status: {String(status)} | Agent: {agentId || "—"}
       </div>
