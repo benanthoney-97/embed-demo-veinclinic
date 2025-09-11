@@ -81,10 +81,10 @@ export default function Client({
           display: "grid",
           gridTemplateColumns: "auto 1fr",
           gap: 12,
-          alignItems: "center",
+          alignItems: "left",
           padding: 12,
           background: "#fff",
-          border: "1px solid rgba(0,0,0,.08)",
+          border: "0px",
           borderRadius: 12,
         }}
       >
