@@ -78,18 +78,18 @@ export default function Client({
   // Inline compact UI (button first, then copy)
   if (inlineMode) {
     return (
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "auto 1fr",
-          gap: 12,
-          alignItems: "start",
-          padding: 12,
-          background: "#fff",
-          border: "0px",
-          borderRadius: 12,
-        }}
-      >
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "auto 1fr",
+    gap: 12,
+    alignItems: "center",   // 👈 middle vertically
+    padding: 12,
+    background: "#fff",
+    border: "0px",
+    borderRadius: 12,
+  }}
+>
         {/* Left: action controls */}
         {phase === "idle" || phase === "ready" ? (
           <button
@@ -102,7 +102,7 @@ export default function Client({
           </button>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 13, color: "rgba(0,0,0,.6)" }}>
+            <span style={{ fontSize: 13, color: "rgba(0,0,0,.6)", fontWeight: 600 }}>
               {isConnected ? "Talk to interrupt" : "…"}
             </span>
             <button
@@ -118,7 +118,7 @@ export default function Client({
         )}
 
         {/* Right: explanatory/feedback text */}
-        <div style={{ font: "500 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
+        <div style={{ font: "600 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
           {phase === "connecting" ? (
             <span>Connecting…</span>
           ) : phase === "connected" ? (
@@ -194,6 +194,7 @@ function pill(variant: "solid" | "soft" = "solid"): CSSProperties {
     ...base,
     border: "1px solid rgba(79,70,229,.3)",
     background: "#4f46e5",
+    fontWeight: 600,
     color: "#fff",
   };
 }

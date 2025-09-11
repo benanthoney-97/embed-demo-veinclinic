@@ -94,7 +94,7 @@ export async function GET() {
       frame.style.height = "100%";
       frame.style.border = "0";
       frame.style.borderRadius = "12px";
-      frame.style.boxShadow = "0 12px 30px rgba(0,0,0,.06)";
+      frame.style.boxShadow = "0px";
       wrap.appendChild(frame);
     };
 
