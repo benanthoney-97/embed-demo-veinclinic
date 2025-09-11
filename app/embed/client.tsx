@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useConversation } from "@elevenlabs/react";
 
 type Phase = "idle" | "ready" | "connecting" | "connected";
@@ -42,7 +42,9 @@ export default function Client({
         await navigator.mediaDevices.getUserMedia({ audio: true });
       }
 
-      const res = await fetch(`/api/eleven/get-signed-url?agent_id=${encodeURIComponent(agentId)}`);
+      const res = await fetch(
+        `/api/eleven/get-signed-url?agent_id=${encodeURIComponent(agentId)}`
+      );
       const data: { signedUrl?: string; error?: string } = await res.json();
       if (!res.ok || !data.signedUrl) {
         throw new Error(data.error || "Failed to get signed URL");
@@ -81,7 +83,7 @@ export default function Client({
           display: "grid",
           gridTemplateColumns: "auto 1fr",
           gap: 12,
-          alignItems: "left",
+          alignItems: "start",
           padding: 12,
           background: "#fff",
           border: "0px",
@@ -90,7 +92,12 @@ export default function Client({
       >
         {/* Left: action controls */}
         {phase === "idle" || phase === "ready" ? (
-          <button onClick={start} style={pill()}>
+          <button
+            onClick={start}
+            style={pill("solid")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#4338ca")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#4f46e5")}
+          >
             Start Dialogue
           </button>
         ) : (
@@ -98,7 +105,13 @@ export default function Client({
             <span style={{ fontSize: 13, color: "rgba(0,0,0,.6)" }}>
               {isConnected ? "Talk to interrupt" : "…"}
             </span>
-            <button onClick={stop} aria-label="Stop" style={pill("soft")}>
+            <button
+              onClick={stop}
+              aria-label="Stop"
+              style={pill("soft")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f8f8")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+            >
               Stop
             </button>
           </div>
@@ -129,10 +142,22 @@ export default function Client({
   return (
     <div style={{ padding: 12 }}>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={start} disabled={phase === "connecting" || isConnected}>
+        <button
+          onClick={start}
+          disabled={phase === "connecting" || isConnected}
+          style={pill("solid")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#4338ca")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#4f46e5")}
+        >
           {isConnected ? "Connected" : phase === "connecting" ? "Starting…" : "Start Dialogue"}
         </button>
-        <button onClick={stop} disabled={!isConnected}>
+        <button
+          onClick={stop}
+          disabled={!isConnected}
+          style={pill("soft")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f8f8")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+        >
           Stop
         </button>
       </div>
@@ -144,23 +169,31 @@ export default function Client({
   );
 }
 
-function pill(variant: "solid" | "soft" = "solid"): React.CSSProperties {
-  if (variant === "soft") {
-    return {
-      padding: "10px 14px",
-      borderRadius: 9999,
-      border: "1px solid rgba(0,0,0,.12)",
-      background: "#fff",
-      cursor: "pointer",
-    };
-  }
-  return {
+function pill(variant: "solid" | "soft" = "solid"): CSSProperties {
+  const base: CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
     padding: "10px 14px",
     borderRadius: 9999,
+    cursor: "pointer",
+    boxShadow: "0px",
+    transition: "background 120ms ease, opacity 120ms ease",
+  };
+
+  if (variant === "soft") {
+    return {
+      ...base,
+      border: "1px solid rgba(0,0,0,.12)",
+      background: "#fff",
+      color: "#000",
+    };
+  }
+
+  return {
+    ...base,
     border: "1px solid rgba(79,70,229,.3)",
     background: "#4f46e5",
     color: "#fff",
-    cursor: "pointer",
-    boxShadow: "0px",
   };
 }
