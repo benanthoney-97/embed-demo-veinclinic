@@ -88,16 +88,19 @@ export default function Client({
 
     return (
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "auto 1fr",
-          gap: 12,
-          alignItems: "center",
-          padding: 12,
-          background: "transparent",
-          border: "0px",
-          borderRadius: 12,
-        }}
+style={{
+  display: "grid",
+  gridTemplateColumns: "auto 1fr",
+  gap: 12,
+  alignItems: "center",
+  paddingTop: 12,
+  paddingBottom: 12,
+  paddingLeft: 0,
+  paddingRight: 0,
+  background: "transparent",
+  border: "0px",
+  borderRadius: 12,
+}}
       >
         {/* Left: action controls */}
         {phase === "idle" || phase === "ready" ? (
