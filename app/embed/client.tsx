@@ -84,7 +84,7 @@ export default function Client({
         ? isSpeaking
           ? "Talk to interrupt" // agent speaking
           : "Listening"         // user speaking / user’s turn
-        : "Dialogue lets you talk to this article at a level and language that suits you.";
+        : "";
 
     return (
       <div
