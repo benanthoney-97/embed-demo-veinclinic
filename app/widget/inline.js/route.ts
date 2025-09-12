@@ -29,17 +29,20 @@ export async function GET() {
     wrap.style.position = "relative";
 
     // CTA container (fills the box so click target is large)
-    const ctaBox = document.createElement("div");
-    ctaBox.style.position = "absolute";
-    ctaBox.style.inset = "0";
-    ctaBox.style.display = "flex";
-    ctaBox.style.alignItems = "left";
-    ctaBox.style.padding = "12px";
-    ctaBox.style.justifyContent = "left";
-    ctaBox.style.background = "transparent";
-    ctaBox.style.border = "0px";
-    ctaBox.style.borderRadius = "12px";
-    ctaBox.style.boxShadow = "0px";
+const ctaBox = document.createElement("div");
+ctaBox.style.position = "absolute";
+ctaBox.style.inset = "0";
+ctaBox.style.display = "flex";
+ctaBox.style.alignItems = "left";
+ctaBox.style.paddingTop = "12px";
+ctaBox.style.paddingRight = "12px";
+ctaBox.style.paddingBottom = "12px";
+ctaBox.style.paddingLeft = "0";
+ctaBox.style.justifyContent = "left";
+ctaBox.style.background = "transparent";
+ctaBox.style.border = "0px";
+ctaBox.style.borderRadius = "12px";
+ctaBox.style.boxShadow = "0px";
     ctaBox.style.transition = \`opacity \${fadeMs}ms ease\`;
 
     // Button
