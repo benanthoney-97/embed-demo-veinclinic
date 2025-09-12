@@ -94,7 +94,7 @@ export default function Client({
           gap: 12,
           alignItems: "center",
           padding: 12,
-          background: "#fff",
+          background: "transparent",
           border: "0px",
           borderRadius: 12,
         }}
