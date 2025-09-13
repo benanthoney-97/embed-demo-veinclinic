@@ -61,7 +61,7 @@ ctaBox.style.boxShadow = "0px";
     btn.style.boxShadow = "0px";
     btn.style.transition = "background 120ms ease, opacity 120ms ease";
     btn.onmouseenter = () => (btn.style.background = "#f8f8f8");
-    btn.onmouseleave = () => (btn.style.background = "#fff");
+    btn.onmouseleave = () => (btn.style.background = "#f8f8f8");
 
     if (logo) {
       const img = document.createElement("img");
