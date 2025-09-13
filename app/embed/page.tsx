@@ -2,25 +2,22 @@
 
 import Client from "./client";
 
-export default function Page({
-  searchParams,
-}: {
-  searchParams: { [k: string]: string | string[] | undefined };
-}) {
+const BEIGE = "#f8f7f3";
+
+export default function Page({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const agentId = String(searchParams.agent_id ?? "");
-  const inlineMode =
-    String(searchParams.mode ?? "").toLowerCase() === "inline";
+  const inlineMode = String(searchParams.mode ?? "").toLowerCase() === "inline";
 
   return (
     <main
       style={{
         position: "relative",
         width: "100%",
-        height: "100vh",
+        minHeight: "100dvh",     // better for mobile than 100vh
         overflow: "hidden",
+        background: BEIGE,       // <-- give the page itself the beige
       }}
     >
-
       {/* Widget overlay */}
       <div
         style={{
@@ -29,16 +26,19 @@ export default function Page({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          height: "100%",
+          minHeight: "100dvh",
         }}
       >
         <div
           style={{
-            background: "#f8f7f3",
+            // background: "rgba(255, 255, 255, 0.85)", // ❌ remove the white wash
+            background: BEIGE,                         // ✅ keep it beige (or omit entirely)
             borderRadius: 12,
             padding: 0,
             maxWidth: 500,
             width: "100%",
+            overflow: "hidden",                        // avoid hairline edges with radius
+            backgroundClip: "padding-box",
           }}
         >
           <Client agentId={agentId} inlineMode={inlineMode} />
