@@ -98,7 +98,7 @@ style={{
   paddingLeft: 0,
   paddingRight: 0,
   background: "#f8f7f3",
-  border: "0px",
+  border: "none",
   borderRadius: 12,
 }}
       >

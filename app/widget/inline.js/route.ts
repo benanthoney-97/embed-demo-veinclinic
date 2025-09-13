@@ -27,6 +27,7 @@ export async function GET() {
     wrap.style.maxWidth = "100%";
     wrap.style.height = height;
     wrap.style.position = "relative";
+    wrap.style.background = "#f8f7f3";
 
     // CTA container (fills the box so click target is large)
 const ctaBox = document.createElement("div");
