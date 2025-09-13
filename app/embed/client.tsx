@@ -163,8 +163,8 @@ style={{
           onClick={start}
           disabled={phase === "connecting" || isConnected}
           style={pill("solid")}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#4338ca")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#4f46e5")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#0b3b3c")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#0b3b3c")}
         >
           {isConnected ? "Connected" : phase === "connecting" ? "Starting…" : "Start Dialogue"}
         </button>
@@ -172,8 +172,8 @@ style={{
           onClick={stop}
           disabled={!isConnected}
           style={pill("soft")}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f8f8")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f3")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#f8f7f3")}
         >
           <span
             aria-hidden="true"
