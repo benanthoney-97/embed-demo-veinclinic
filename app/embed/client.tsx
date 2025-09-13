@@ -110,7 +110,7 @@ style={{
             onMouseEnter={(e) => (e.currentTarget.style.background = "#0b3b3c")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "#0b3b3c")}
           >
-            Start Dialogue
+            Start chat
           </button>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -166,7 +166,7 @@ style={{
           onMouseEnter={(e) => (e.currentTarget.style.background = "#0b3b3c")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "#0b3b3c")}
         >
-          {isConnected ? "Connected" : phase === "connecting" ? "Starting…" : "Start Dialogue"}
+          {isConnected ? "Connected" : phase === "connecting" ? "Starting…" : "Start chat"}
         </button>
         <button
           onClick={stop}
