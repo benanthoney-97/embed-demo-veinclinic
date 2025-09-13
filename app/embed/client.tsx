@@ -97,7 +97,7 @@ style={{
   paddingBottom: 12,
   paddingLeft: 0,
   paddingRight: 0,
-  background: "transparent",
+  background: "#f8f7f3",
   border: "0px",
   borderRadius: 12,
 }}
