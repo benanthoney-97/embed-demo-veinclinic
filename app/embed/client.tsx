@@ -118,8 +118,8 @@ style={{
               onClick={stop}
               aria-label="Stop"
               style={pill("soft")}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f8f8")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f3")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#f8f7f3")}
             >
               {/* Black square icon */}
               <span
