@@ -34,7 +34,7 @@ export default function Page({
       >
         <div
           style={{
-            background: "rgba(255, 255, 255, 0.85)",
+            background: "#f8f7f3",
             borderRadius: 12,
             padding: 0,
             maxWidth: 500,
