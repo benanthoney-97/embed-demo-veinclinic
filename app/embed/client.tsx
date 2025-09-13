@@ -107,8 +107,8 @@ style={{
           <button
             onClick={start}
             style={pill("solid")}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#4338ca")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#4f46e5")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#0b3b3c")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#0b3b3c")}
           >
             Start Dialogue
           </button>
