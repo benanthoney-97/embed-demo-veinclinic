@@ -220,7 +220,7 @@ function pill(variant: "solid" | "soft" = "solid"): CSSProperties {
     return {
       ...base,
       border: "1px solid rgba(0,0,0,.12)",
-      background: "#fff",
+      background: "#f8f7f3",
       color: "#000",
     };
   }
@@ -228,7 +228,7 @@ function pill(variant: "solid" | "soft" = "solid"): CSSProperties {
   return {
     ...base,
     border: "1px solid rgba(79,70,229,.3)",
-    background: "#4f46e5",
+    background: "#0b3b3c",
     color: "#fff",
   };
 }
