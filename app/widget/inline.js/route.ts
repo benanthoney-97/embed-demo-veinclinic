@@ -100,6 +100,7 @@ ctaBox.style.boxShadow = "0px";
       frame.style.borderRadius = "12px";
       frame.style.boxShadow = "0px";
       wrap.appendChild(frame);
+      frame.style.background = "#f8f7f3";
     };
 
     btn.onclick = () => {
