@@ -59,6 +59,7 @@ btn.style.border = "1px solid rgba(0,0,0,.12)";
 btn.style.background = "#0b3b3c";
 btn.style.cursor = "pointer";
 btn.style.boxShadow = "0px";
+btn.style.color = "white";
 btn.style.transition = "background 120ms ease, opacity 120ms ease";
 btn.onmouseenter = () => (btn.style.background = "#0b3b3c");
 btn.onmouseleave = () => (btn.style.background = "#0b3b3c");
@@ -79,6 +80,7 @@ btn.onmouseleave = () => (btn.style.background = "#0b3b3c");
     const span = document.createElement("span");
     span.textContent = label;
     span.style.fontWeight = "600";
+    span.style.color = "white";
     btn.appendChild(span);
 
     ctaBox.appendChild(btn);
