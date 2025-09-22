@@ -56,12 +56,12 @@ ctaBox.style.boxShadow = "0px";
     btn.style.padding = "10px 14px";
     btn.style.borderRadius = "9999px";
     btn.style.border = "1px solid rgba(0,0,0,.12)";
-    btn.style.background = "#ddfaee";
+    btn.style.background = "#0b3b3c";
     btn.style.cursor = "pointer";
     btn.style.boxShadow = "0px";
     btn.style.transition = "background 120ms ease, opacity 120ms ease";
-    btn.onmouseenter = () => (btn.style.background = "#ddfaee");
-    btn.onmouseleave = () => (btn.style.background = "#ddfaee");
+    btn.onmouseenter = () => (btn.style.background = "#0b3b3c);
+    btn.onmouseleave = () => (btn.style.background = "#0b3b3c");
 
     if (logo) {
       const img = document.createElement("img");
@@ -79,6 +79,7 @@ ctaBox.style.boxShadow = "0px";
     const span = document.createElement("span");
     span.textContent = label;
     span.style.fontWeight = "600";
+    span.style.fontColor = "white";
     btn.appendChild(span);
 
     ctaBox.appendChild(btn);
