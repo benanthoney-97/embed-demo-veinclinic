@@ -27,7 +27,7 @@ export async function GET() {
     wrap.style.maxWidth = "100%";
     wrap.style.height = height;
     wrap.style.position = "relative";
-    wrap.style.background = "#ddfaee";
+    wrap.style.background = "#ffffffff";
 
     // CTA container (fills the box so click target is large)
 const ctaBox = document.createElement("div");
@@ -40,7 +40,7 @@ ctaBox.style.paddingRight = "12px";
 ctaBox.style.paddingBottom = "12px";
 ctaBox.style.paddingLeft = "0";
 ctaBox.style.justifyContent = "left";
-ctaBox.style.background = "#ddfaee";
+ctaBox.style.background = "#ffffffff";
 ctaBox.style.border = "0px";
 ctaBox.style.borderRadius = "12px";
 ctaBox.style.boxShadow = "0px";
@@ -102,7 +102,7 @@ btn.onmouseleave = () => (btn.style.background = "#0b3b3c");
       frame.style.borderRadius = "12px";
       frame.style.boxShadow = "0px";
       wrap.appendChild(frame);
-      frame.style.background = "#ddfaee";
+      frame.style.background = "#ffffffff";
     };
 
     btn.onclick = () => {
