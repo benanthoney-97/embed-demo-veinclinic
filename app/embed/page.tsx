@@ -2,7 +2,7 @@
 
 import Client from "./client";
 
-const BEIGE = "#f8f7f3";
+const BEIGE = "#ddfaee";
 
 export default function Page({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const agentId = String(searchParams.agent_id ?? "");

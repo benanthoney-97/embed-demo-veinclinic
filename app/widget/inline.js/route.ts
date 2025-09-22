@@ -27,7 +27,7 @@ export async function GET() {
     wrap.style.maxWidth = "100%";
     wrap.style.height = height;
     wrap.style.position = "relative";
-    wrap.style.background = "#f8f7f3";
+    wrap.style.background = "#ddfaee";
 
     // CTA container (fills the box so click target is large)
 const ctaBox = document.createElement("div");
@@ -40,7 +40,7 @@ ctaBox.style.paddingRight = "12px";
 ctaBox.style.paddingBottom = "12px";
 ctaBox.style.paddingLeft = "0";
 ctaBox.style.justifyContent = "left";
-ctaBox.style.background = "#f8f7f3";
+ctaBox.style.background = "#ddfaee";
 ctaBox.style.border = "0px";
 ctaBox.style.borderRadius = "12px";
 ctaBox.style.boxShadow = "0px";
@@ -56,12 +56,12 @@ ctaBox.style.boxShadow = "0px";
     btn.style.padding = "10px 14px";
     btn.style.borderRadius = "9999px";
     btn.style.border = "1px solid rgba(0,0,0,.12)";
-    btn.style.background = "#f8f8f8";
+    btn.style.background = "#ddfaee";
     btn.style.cursor = "pointer";
     btn.style.boxShadow = "0px";
     btn.style.transition = "background 120ms ease, opacity 120ms ease";
-    btn.onmouseenter = () => (btn.style.background = "#f8f8f8");
-    btn.onmouseleave = () => (btn.style.background = "#f8f8f8");
+    btn.onmouseenter = () => (btn.style.background = "#ddfaee");
+    btn.onmouseleave = () => (btn.style.background = "#ddfaee");
 
     if (logo) {
       const img = document.createElement("img");
@@ -100,7 +100,7 @@ ctaBox.style.boxShadow = "0px";
       frame.style.borderRadius = "12px";
       frame.style.boxShadow = "0px";
       wrap.appendChild(frame);
-      frame.style.background = "#f8f7f3";
+      frame.style.background = "#ddfaee";
     };
 
     btn.onclick = () => {

@@ -97,7 +97,7 @@ style={{
   paddingBottom: 12,
   paddingLeft: 0,
   paddingRight: 0,
-  background: "#f8f7f3",
+  background: "#ddfaee",
   border: "none",
   borderRadius: 12,
 }}
@@ -118,8 +118,8 @@ style={{
               onClick={stop}
               aria-label="Stop"
               style={pill("soft")}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f3")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#f8f7f3")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#ddfaee")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#ddfaee")}
             >
               {/* Black square icon */}
               <span
@@ -172,8 +172,8 @@ style={{
           onClick={stop}
           disabled={!isConnected}
           style={pill("soft")}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f7f3")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#f8f7f3")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#ddfaee")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#ddfaee")}
         >
           <span
             aria-hidden="true"
@@ -220,7 +220,7 @@ function pill(variant: "solid" | "soft" = "solid"): CSSProperties {
     return {
       ...base,
       border: "1px solid rgba(0,0,0,.12)",
-      background: "#f8f7f3",
+      background: "#ddfaee",
       color: "#000",
     };
   }
