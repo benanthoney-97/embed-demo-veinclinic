@@ -2,7 +2,7 @@
 
 import Client from "./client";
 
-const BEIGE = "#ddfaee";
+const WHITE = "#ffffffff";
 
 export default function Page({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const agentId = String(searchParams.agent_id ?? "");
@@ -15,7 +15,7 @@ export default function Page({ searchParams }: { searchParams: Record<string, st
         width: "100%",
         minHeight: "100dvh",     // better for mobile than 100vh
         overflow: "hidden",
-        background: BEIGE,       // <-- give the page itself the beige
+        background: WHITE,       // <-- give the page itself the beige
       }}
     >
       {/* Widget overlay */}
@@ -32,7 +32,7 @@ export default function Page({ searchParams }: { searchParams: Record<string, st
         <div
           style={{
             // background: "rgba(255, 255, 255, 0.85)", // ❌ remove the white wash
-            background: BEIGE,                         // ✅ keep it beige (or omit entirely)
+            background: WHITE,                         // ✅ keep it beige (or omit entirely)
             borderRadius: 12,
             padding: 0,
             maxWidth: 500,
