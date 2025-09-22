@@ -46,22 +46,22 @@ ctaBox.style.borderRadius = "12px";
 ctaBox.style.boxShadow = "0px";
     ctaBox.style.transition = \`opacity \${fadeMs}ms ease\`;
 
-    // Button
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.setAttribute("aria-label", label);
-    btn.style.display = "inline-flex";
-    btn.style.alignItems = "center";
-    btn.style.gap = "8px";
-    btn.style.padding = "10px 14px";
-    btn.style.borderRadius = "9999px";
-    btn.style.border = "1px solid rgba(0,0,0,.12)";
-    btn.style.background = "#0b3b3c";
-    btn.style.cursor = "pointer";
-    btn.style.boxShadow = "0px";
-    btn.style.transition = "background 120ms ease, opacity 120ms ease";
-    btn.onmouseenter = () => (btn.style.background = "#0b3b3c);
-    btn.onmouseleave = () => (btn.style.background = "#0b3b3c");
+// Button
+const btn = document.createElement("button");
+btn.type = "button";
+btn.setAttribute("aria-label", label);
+btn.style.display = "inline-flex";
+btn.style.alignItems = "center";
+btn.style.gap = "8px";
+btn.style.padding = "10px 14px";
+btn.style.borderRadius = "9999px";
+btn.style.border = "1px solid rgba(0,0,0,.12)";
+btn.style.background = "#0b3b3c";
+btn.style.cursor = "pointer";
+btn.style.boxShadow = "0px";
+btn.style.transition = "background 120ms ease, opacity 120ms ease";
+btn.onmouseenter = () => (btn.style.background = "#0b3b3c");
+btn.onmouseleave = () => (btn.style.background = "#0b3b3c");
 
     if (logo) {
       const img = document.createElement("img");
