@@ -79,7 +79,6 @@ ctaBox.style.boxShadow = "0px";
     const span = document.createElement("span");
     span.textContent = label;
     span.style.fontWeight = "600";
-    span.style.fontColor = "white";
     btn.appendChild(span);
 
     ctaBox.appendChild(btn);
